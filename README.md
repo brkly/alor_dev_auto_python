@@ -86,6 +86,6 @@ alor = alor_swagger.Api(username='P0*****', refresh='***')
 ```
 3. Пример вызова
 ```
-alor.client.dev_user_portfolio(username='P0*****')
+alor.get_client().dev_user_portfolio(username='P0*****')
 ```
 4. Все команды API описаны и находятся в swagger_client -> api -> default_api.py
