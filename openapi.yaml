@@ -1,0 +1,3524 @@
+openapi: 3.0.0
+info:
+  title: Alor OpenAPI V2
+  description: |
+    <small>Swagger-документация для API v1 доступна по ссылке&#58; <a href="https://alor.dev/rawdocs/WarpOpenApi3.yml">https://alor.dev/rawdocs/WarpOpenApi3.yml</a></small><br><br>
+    API для работы с торговой системой АЛОР Брокер. Предоставляет интерфейсы для выставления заявок и получения биржевой информации.
+
+    Данные для неавторизованных запросов предоставляются с 15-минутной задержкой, для авторизованных - без задержек. 
+
+    Публичная биржевая информация может быть получена через HTTP(S) API, а также доступна через однократно установленное WebSocket соединение. <br>
+    **Внимание!** WebSocket соединения могут и будут разрываться *(например, если клиент не успевает обрабатывать сообщения и на стороне API в буфере накопится более 5000 событий)*. <br>
+    Во внешнем ПО необходимо предусмотреть механизмы переподключения и переподписки (при необходимости)! <br> <br> 
+    В OpenAPI V2 "Санкт-Петербургская биржа" (SPBX) еще находится в процессе разработки. Доступно получение рыночных данных *(marketdata, md)*. Заявки на SPBX в V2 пока недоступны. В V1 торговый функционал для SPBX доступен.
+
+    <h4> Доступные типы данных </h4>
+     * Все сделки
+     * Все заявки
+     * Информация по инструментам
+     * Котировки
+     * Биржевые стаканы
+     * Исторические данные
+     * Позиции
+     * Информация о клиенте
+
+    <h4>Поддерживаемые виды заявок</h4>
+     * рыночные
+     * лимитные
+     * стоп-лосс
+     * тейк-профит
+     * стоп-лосс лимит
+     * тейк-профит лимит
+
+    <h4>    Ограничения по частоте запросов     </h4>
+    <p>На текущий момент ограничений по количеству запросов в минуту или WebSocket-подписок нет. <br/>
+    Сервер может обрабатывать "тяжелые" запросы (пример - история за все время) и запросы без авторизации с меньшим приоритетом. <br/>
+    АЛОР оставляет за собой право на ограничение частоты запросов, если это будет необходимо для стабильной работы системы. <br/>
+    <br/></p>
+
+
+    <h2>
+    Авторизация
+    </h2>
+
+    <h4>OAuth</h4>
+
+    <b>Внимание!</b>  
+    JWT и refresh token — равносильны логину и паролю.
+    Их нужно скрывать от публичного доступа.
+
+    <h4>Для разработчиков сторонних приложений, в которых торговлю будут вести их пользователи.</h4>
+
+    Мы предоставляем сервис для авторизации сторониих приложений по стандарту OAuth 2.0.
+    С примером приложения, использующего OAuth сервис для авторизации пользователей можно ознакомиться в разделе
+     <a href="/examples">Примеры</a>.
+
+    Список разрешений (scopes), которые могут быть выданы приложению:
+    <table>
+      <tr>
+        <td><b>OrdersRead</b></td>
+        <td>Чтение выставленных заявок</td>
+      </tr>
+      <tr>
+        <td><b>OrdersCreate</b></td>
+        <td>Выставление заявок</td>
+      </tr>
+      <tr>
+        <td><b>Trades</b></td>
+        <td>Чтение совершенных сделок</td>
+      </tr>
+      <tr>
+        <td><b>Personal</b></td>
+        <td>Персональная информация: ФИО, почта и т.п.</td>
+      </tr>
+      <tr>
+        <td><b>Stats</b></td>
+        <td>Статистика: прибыль, средние цены и т.п.</td>
+      </tr>
+    </table>
+
+    <h4>Для ведения операций от своего имени</h4>
+
+    Выписать себе <b>refresh token</b> для ведения операций от своего имени [можно здесь](https://alor.dev/open-api-tokens).
+
+    <h2>Краткое описание работы с авторизацией</h2>
+
+    Чтобы выполнить авторизованный запрос, добавьте в запрос заголовок с именем "Authorization"
+    и значением, состоящим из префикса `"Bearer "` и валидного JWT токена.
+
+    Срок жизни JWT короткий: это сделано для безопасности. 
+    Для большинства вариантов использования API мы рекоммендуем использовать механизм  <b>refresh token</b> .
+
+    Механизм  <b>refresh token</b>  позволяет получать JWT с новым сроком жизни.
+    Для этого отправьте POST запрос на адрес `https://oauthdev.alor.ru/refresh?token={refreshToken}` *(игровой контур)* или `https://oauth.alor.ru/refresh?token={refreshToken}` *(боевой контур)*.
+    Если у  <b>refresh token</b>  не истек срок жизни и не он не был отозван, то в теле ответа в поле AccessToken вернётся свежий JWT токен. 
+
+    Срок жизни  <b>refresh token</b>, получаемого обычным способом — 1 месяц.  
+    Срок жизни  <b>refresh token</b>, получаемого самостоятельным выписыванием — год.
+
+    |
+    |-
+
+    > Если мы для вас не завели портфели для ведения торговли в игровом контуре, оставьте заявку на <a href="mailto:openapi@alor.ru">openapi@alor.ru</a> или свяжитесь с нами в [телеграме](https://tgmssg.ru/AlorOpenAPI).
+
+    </br></br>
+    Игровой контур: `https://apidev.alor.ru`
+
+    Боевой контур: `https://api.alor.ru`
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+  version: '1.0'
+  termsOfService: 'http://alorbroker.ru'
+  contact:
+    email: openapi@alor.ru
+servers:
+  - url: https://api.alor.ru
+    description: Production server
+paths:
+  '/client/v1.0/users/{username}/portfolios':
+    get:
+      summary: Получение списка серверов портфелей
+      description: Получение списка серверов по секциям «Валютный Рынок», «Срочный Рынок», «Фондовый Рынок». В ответе в поле tradeServerCode содержится значение которое надо использовать
+      operationId: DevUserPortfolio
+      parameters:
+        - name: username
+          in: path
+          description: Имя пользователя
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: P039004
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/servers_info'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/clients/{exchange}/{portfolio}/orders':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о всех заявках
+      description: Запрос информации о всех заявках
+      operationId: DevGetAllOrders
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+          example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/clients/{exchange}/{portfolio}/orders/{orderId}':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о выбранной заявке
+      description: Запрос информации о выбранной заявке
+      operationId: DevGetOneOrder
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+          example: 18995978560
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+          example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/order'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+        '404':
+          description: Указанный orderId не найден
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/clients/{exchange}/{portfolio}/stoporders':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о стоп-заявках
+      description: Запрос информации о всех стоп-заявках
+      operationId: DevGetAllStopOrders
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+          example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stoporders'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/clients/{exchange}/{portfolio}/stoporders/{orderId}':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о выбранной стоп-заявке
+      description: Запрос информации о выбранной стоп-заявке
+      operationId: DevGetOneStopOrder
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: orderId
+          in: path
+          description: Идентификатор стоп-заявки
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+          example: 332350
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+          example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stoporder'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+        '404':
+          description: Указанный orderId не найден
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/clients/legacy/{exchange}/{portfolio}/money':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации по деньгам для выбранного портфеля
+      description: 'Запрос информации о позиции по деньгам. Вызов существует для обратной совместимости с API v1, предпочтительно использовать другие вызовы (/summary, /risk, /positions)'
+      operationId: ExchangePortfolioMoney
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/money'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/clients/{exchange}/{portfolio}/summary':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о портфеле
+      description: Запрос сводной информации о портфеле
+      operationId: ExchangePortfolioSummary
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/summary'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Clients/{exchange}/{portfolio}/positions':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о позициях
+      description: Запрос информации о позициях
+      operationId: DevGetAllPositions
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+        - name: withoutCurrency
+          in: query
+          description: 'Исключить из ответа все денежные инструменты, по умолчанию false'
+          required: false
+          schema:
+            type: boolean
+            enum:
+              - true
+              - false
+            example: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/positions'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Clients/{exchange}/{portfolio}/positions/{symbol}':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о позициях выбранного инструмента
+      description: Запрос информации о позициях выбранного инструмента
+      operationId: DevGetOnePosition
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: symbol
+          in: path
+          description: Тикер (Код финансового инструмента)
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: LKOH
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/position'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+        '404':
+          description: Указанный symbol не найден
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Clients/{exchange}/{portfolio}/trades':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о сделках
+      description: Запрос информации о сделках
+      operationId: DevGetAllTrades
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/trades'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Clients/{exchange}/{portfolio}/{ticker}/trades':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о сделках по выбранному инструменту
+      description: Запрос информации о сделках по выбранному инструменту
+      operationId: DevGetTickerTrades
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: ticker
+          in: path
+          description: Тикер (Код финансового инструмента)
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: LKOH
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/trades'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Clients/{exchange}/{portfolio}/fortsrisk':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о рисках на срочном рынке
+      description: Запрос информации о рисках на срочном рынке для выбранного портфеля
+      operationId: Fortsrisk
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/fortsrisk'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Clients/{exchange}/{portfolio}/risk':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о рисках
+      description: Запрос информации о рисках
+      operationId: Risk
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: portfolio
+          in: path
+          description: Идентификатор клиентского портфеля
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/risk'
+        '403':
+          description: Недостаточно прав для получения информации об указанном portfolio
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Securities':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о торговых инструментах
+      description: Запрос информации о торговых инструментах
+      operationId: DevSecuritiesSearch
+      parameters:
+        - name: query
+          in: query
+          description: Тикер (Код финансового инструмента)
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: GAZP
+        - name: limit
+          in: query
+          description: Ограничение на количество выдаваемых результатов поиска
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+            format: int32
+          example: 3
+        - name: sector
+          in: query
+          description: Рынок на бирже
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            enum:
+              - FORTS
+              - FOND
+              - CURR
+          example: FOND
+        - name: cficode
+          in: query
+          description: Код финансового инструмента по стандарту ISO 10962
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: EXXXXX
+        - name: exchange
+          in: query
+          description: Биржа
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/securities'
+      security:
+        - bearerAuth: []
+      deprecated: false
+  '/md/v2/Securities/{exchange}':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о торговых инструментах на выбранной бирже
+      description: Запрос информации об инструментах на выбранной бирже
+      operationId: DevSecuritiesSearchExchange
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/securities'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Securities/{exchange}/{symbol}':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о выбранном финансовом инструменте
+      description: Запрос информации о выбранном финансовом инструменте на бирже
+      operationId: DevSecuritiesSearchExchangeCode
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: symbol
+          in: path
+          description: Тикер (Код финансового инструмента)
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: SBER
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/security'
+        '404':
+          description: Указанный symbol не найден
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Securities/{symbols}/quotes':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о котировках для выбранных инструментов
+      description: Запрос информации о котировках для выбранных инструментов и бирж
+      operationId: DevQuotes
+      parameters:
+        - name: symbols
+          in: path
+          description: Принимает несколько пар биржа-тикер. Пары отделены запятыми. Биржа и тикер разделены двоеточием
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            example: 'MOEX:SBER,MOEX:GAZP,SPBX:AAPL'
+          example: 'MOEX:SBER,MOEX:GAZP,SPBX:AAPL'
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/symbols'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/orderbooks/{exchange}/{seccode}':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о биржевом стакане
+      description: Запрос биржевого стакана
+      operationId: DevOrderbookExchangSeccode
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: seccode
+          in: path
+          description: Инструмент
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            example: RTS-9.20
+          example: RTS-9.20
+        - name: depth
+          in: query
+          description: Глубина стакана. Стандартное и максимальное значение - 20 (20х20).
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+            maximum: 20
+            minimum: 1
+            example: 5
+          example: 5
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orderbook'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Securities/{exchange}/{symbol}/alltrades':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение информации о всех сделках по ценным бумагам за сегодня
+      description: Запросить данные о всех сделках (лента) по ценным бумагам за сегодняшний день
+      operationId: DevSecuritiesSearchAllTrades
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: symbol
+          in: path
+          description: Тикер (Код финансового инструмента)
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: SBER
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+          example: Simple
+        - name: from
+          in: query
+          description: Начало отрезка времени (UTC) для фильтра результатов в формате Unix Time Seconds
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          example: 1593430060
+        - name: to
+          in: query
+          description: Конец отрезка времени (UTC) для фильтра результатов в формате Unix Time Seconds
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          example: 1593430560
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/alltrades'
+        '404':
+          description: Указанный symbol не найден
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/Securities/{exchange}/{symbol}/actualFuturesQuote':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Получение котировки по ближайшему фьючерсу (код)
+      description: 'Запрос котировки по ближайшему фьючерсу (только по коду, без даты)'
+      operationId: DevSecuritiesFutures
+      parameters:
+        - name: exchange
+          in: path
+          description: Биржа
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+            enum:
+              - MOEX
+        - name: symbol
+          in: path
+          description: Тикер (Код финансового инструмента)
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: SBRF
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+          example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/symbol_futures'
+        '404':
+          description: Указанный symbol не найден
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/time':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Запрос текущего UTC времени в формате Unix
+      description: 'Запрос текущего UTC времени в формате Unix Time Seconds. Если этот запрос выполнен без авторизации, то будет возвращено время, которое было 15 минут назад.'
+      operationId: LocalTime
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/time'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/md/v2/history':
+    get:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Запрос истории для выбранных биржи и инструмента
+      description: 'Запрос истории рынка для выбранных биржи и финансового инструмента. Данные имеют задержку в 15 минут, если запрос не авторизован. Для авторизованных клиентов задержка не применяется.'
+      operationId: DevHistory
+      parameters:
+        - name: symbol
+          in: query
+          description: Тикер (Код финансового инструмента)
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: SBER
+        - name: exchange
+          in: query
+          description: Биржа
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+            enum:
+              - MOEX
+              - SPBX
+        - name: tf
+          in: query
+          description: 'Длительность таймфрейма в секундах или код ("D" - дни, "W" - недели, "M" - месяцы, "Y" - годы)'
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+            enum:
+              - 15
+              - 60
+              - 300
+              - 3600
+              - D
+              - W
+              - M
+              - 'Y'
+          example: '60'
+        - name: from
+          in: query
+          description: Начало отрезка времени (UTC) в формате Unix Time Seconds
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: integer
+            format: int32
+          example: 1549000661
+        - name: to
+          in: query
+          description: Конец отрезка времени (UTC) в формате Unix Time Seconds
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: integer
+            format: int32
+          example: 1550060661
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: false
+          schema:
+            type: string
+            enum:
+              - Simple
+            example: Simple
+          example: Simple
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/history'
+        '404':
+          description: Указанный symbol не найден
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/commandapi/warptrans/TRADE/v2/client/orders/actions/market':
+    post:
+      summary: Создание рыночной заявки
+      description: ''
+      operationId: CommandAPI /v2/client/orders/actions/market
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsMarketTV'
+      parameters:
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Через точку с запятой портфель и уникальный идентификатор запроса ``portfolio;uid``. В качестве идентификатора запроса требуется уникальная случайная строка. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на предыдущий запрос с таким значением идентификатора.'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004;10338211158548488
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_LimitMarket_CommandAPI'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_400_CommandAPI'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/commandapi/warptrans/TRADE/v2/client/orders/actions/limit':
+    post:
+      summary: Создание лимитной заявки
+      description: ''
+      operationId: CommandAPI /v2/client/orders/actions/limit
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsLimitTV'
+      parameters:
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Через точку с запятой портфель и уникальный идентификатор запроса ``portfolio;uid``. В качестве идентификатора запроса требуется уникальная случайная строка. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на предыдущий запрос с таким значением идентификатора.'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004;10338211158548488
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_LimitMarket_CommandAPI'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_400_CommandAPI'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/actions/stopLoss':
+    post:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Создание стоп-лосс заявки
+      description: ''
+      operationId: /v2/client/orders/actions/stopLoss
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsStop'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-616stn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_StopProfitLoss'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_400'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/actions/takeProfit':
+    post:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Создание стоп-заявки
+      description: ''
+      operationId: /v2/client/orders/actions/takeProfit
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsStop'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-616stn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_StopProfitLoss'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_400'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/actions/takeProfitLimit':
+    post:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Создание стоп-лимит заявки
+      description: ''
+      operationId: /v2/client/orders/actions/takeProfitLimit
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsStoplimit'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-616stn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_StopProfitLoss'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_400'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/actions/stopLossLimit':
+    post:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Создание стоп-лосс лимит заявки
+      description: Создание стоп-лосс лимит заявки
+      operationId: /v2/client/orders/actions/stopLossLimit
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsStoplimit'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-616stn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_StopProfitLoss'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_400'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/actions/stopLoss/{orderId}':
+    put:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Изменение стоп-лосс заявки
+      description: Изменение стоп-лосс заявки с указанным номером
+      operationId: '/v2/client/orders/actions/stopLoss/{orderId}'
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsStop'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+          example: 93713183
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-616stn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_StopProfitLoss'
+        '400':
+          description: Bad request
+          content:
+            string:
+              schema:
+                type: string
+                example: Attempted to change non-owned order
+                description: Получено некорректное значение для X-ALOR-REQID или номера заявки
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/actions/takeProfit/{orderId}':
+    put:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Изменение стоп-заявки
+      description: Изменение стоп-заявки с указанным номером
+      operationId: '/v2/client/orders/actions/takeProfit/{orderId}'
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsStop'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+          example: 93713183
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-696sat
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_StopProfitLoss'
+        '400':
+          description: Bad request
+          content:
+            string:
+              schema:
+                type: string
+                example: Attempted to change non-owned order
+                description: Получено некорректное значение для X-ALOR-REQID или номера заявки
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/actions/takeProfitLimit/{orderId}':
+    put:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Изменение стоп-лимит заявки
+      description: Изменение стоп-лимит заявки с указанным номером
+      operationId: '/v2/client/orders/actions/takeProfitLimit/{orderId}'
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsStoplimit'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+          example: 93713183
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-616stn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_StopProfitLoss'
+        '400':
+          description: Bad request
+          content:
+            string:
+              schema:
+                type: string
+                example: Attempted to change non-owned order
+                description: Получено некорректное значение для X-ALOR-REQID или номера заявки
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/actions/stopLossLimit/{orderId}':
+    put:
+      servers:
+        - url: 'https://apidev.alor.ru'
+      summary: Изменение стоп-лосс лимит заявки
+      description: Изменение стоп-лосс лимит заявки с указанным номером
+      operationId: '/v2/client/orders/actions/stopLossLimit/{orderId}'
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsStoplimit'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+          example: 93713183
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-616stn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_StopProfitLoss'
+        '400':
+          description: Bad request
+          content:
+            string:
+              schema:
+                type: string
+                example: Attempted to change non-owned order
+                description: Получено некорректное значение для X-ALOR-REQID или номера заявки
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/commandapi/warptrans/TRADE/v2/client/orders/actions/market/{orderId}':
+    put:
+      summary: Изменение рыночной заявки
+      description: ''
+      operationId: CommandAPI /v2/client/orders/actions/marketput
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsMarketTVput'
+      parameters:
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          schema:
+            type: string
+          example: '23733377307'
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Через точку с запятой портфолио и уникальный идентификатор запроса ``portfolio;uid``. В качестве идентификатора запроса требуется уникальная случайная строка из цифр. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004;10338211158548488;2
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_LimitMarket'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/commandapi/warptrans/TRADE/v2/client/orders/actions/limit/{orderId}':
+    put:
+      summary: Изменение лимитной заявки
+      description: ''
+      operationId: CommandAPI /v2/client/orders/actions/limitput
+      requestBody:
+        description: Тело заявки
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bodyrequest_OrdersActionsLimitTVput'
+      parameters:
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          schema:
+            type: string
+          example: '23733311729'
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Через точку с запятой портфолио и уникальный идентификатор запроса ``portfolio;uid``. В качестве идентификатора запроса требуется уникальная случайная строка из цифр. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: D39004;10338211158548488;2
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_LimitMarket'
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/commandapi/warptrans/TRADE/v2/client/orders/{orderId}':
+    delete:
+      summary: Снятие заявки
+      description: Снятие заявки с указанным идентификатором
+      operationId: CommandAPI /v2/client/orders/delete
+      parameters:
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          example: '18946369167'
+          schema:
+            type: string
+        - name: account
+          in: query
+          description: Идентификатор аккаунта пользователя
+          required: true
+          schema:
+            type: string
+          example: L01-00000F00
+        - name: portfolio
+          in: query
+          description: Идентификатор клиентского портфеля
+          required: true
+          schema:
+            type: string
+          example: D39004
+        - name: exchange
+          in: query
+          description: Биржа
+          required: true
+          schema:
+            type: string
+            enum:
+              - MOEX
+          example: MOEX
+        - name: stop
+          in: query
+          description: Является стоп-заявкой?
+          required: true
+          schema:
+            type: string
+            enum:
+              - 'true'
+              - 'false'
+          example: 'false'
+        - name: format
+          in: query
+          description: Формат возвращаемого сервером JSON
+          required: true
+          schema:
+            type: string
+            enum:
+              - Simple
+          example: Simple
+          explode: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_DeleteOrderId_CommandAPI'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: OrderToCancelNotFound (404)
+                    description: Тип ошибки
+                  message:
+                    type: string
+                    example: Order to cancel not found
+                    description: Описание ошибки
+      deprecated: false
+      security:
+        - bearerAuth: []
+  '/warptrans/{tradeServerCode}/v2/client/orders/{orderId}':
+    delete:
+      summary: Снятие стоп-заявки
+      description: Снятие стоп-заявки с указанным идентификатором
+      operationId: '/v2/client/orders/actions/{orderId}'
+      parameters:
+        - name: tradeServerCode
+          in: path
+          description: Код торгового сервера
+          required: true
+          schema:
+            type: string
+          example: TRADE
+        - name: orderId
+          in: path
+          description: Идентификатор заявки
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+          example: 93713183
+        - name: portfolio
+          in: query
+          description: Идентификатор клиентского портфеля
+          required: true
+          schema:
+            type: string
+          example: D39004
+        - name: stop
+          in: query
+          description: Является стоп-заявкой?
+          required: true
+          schema:
+            type: boolean
+          example: true
+        - name: X-ALOR-REQID
+          in: header
+          description: 'Требуется уникальная случайная строка в качестве идентификатора запроса. Если уже приходил запрос с таким идентификатором, то заявка не будет исполнена повторно, а в качестве ответа будет возвращена копия ответа на первый запрос с таким значением идентификатора'
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+          example: 9823-616stn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orders_actions_DeleteOrderId'
+        '400':
+          description: Bad request
+          content:
+            string:
+              schema:
+                type: string
+                example: Attempted to change non-owned order
+                description: Получено некорректное значение для X-ALOR-REQID или номера заявки
+      deprecated: false
+      security:
+        - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    orders_actions_LimitMarket_CommandAPI:
+      type: object
+      properties:
+        message:
+          type: string
+          example: success
+          description: Вид ответа на успешно выполненный запрос.
+        orderNumber:
+          type: string
+          example: '18946416113'
+          description: Идентификатор заявки
+    orders_actions_400_CommandAPI:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Request with such X-ALOR-REQID was already handled. We return the response to that request.
+          description: Вид ответа для неуникального X-ALOR-REQID
+        oldResponse:
+          type: object
+          properties:
+            statusCode:
+              type: integer
+              example: 400
+            body:
+              type: string
+              example: 'Provided json can''t be properly deserialised, perhaps you made an error or forgot some field'
+    orders_actions_StopProfitLoss_CommandAPI:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Succeeded, OrderNo=326123, EndTime={08.08.18  23:59:59}'
+          description: Вид ответа на успешно выполненный запрос.
+        orderNumber:
+          type: integer
+          example: 326123
+          description: Идентификатор заявки
+    orders_actions_DeleteOrderId_CommandAPI:
+      type: string
+      example: success
+      description: Вид ответа на успешно выполненный запрос.
+    bodyrequest_OrdersActionsLimitTVput:
+      type: object
+      properties:
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        type:
+          type: string
+          example: limit
+          description: Тип заявки
+        id:
+          type: integer
+          example: 18936040296
+          description: Идентификатор заявки
+        quantity:
+          type: integer
+          example: 2
+          description: Количество
+        price:
+          type: number
+          example: 190.97
+          description: Цена
+        instrument:
+          type: object
+          properties:
+            symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        user:
+          type: object
+          properties:
+            account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+    bodyrequest_OrdersActionsMarketTVput:
+      type: object
+      properties:
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        type:
+          type: string
+          example: market
+          description: Тип заявки
+        id:
+          type: integer
+          example: 18936040296
+          description: Идентификатор заявки
+        quantity:
+          type: integer
+          example: 2
+          description: Количество
+        instrument:
+          type: object
+          properties:
+            symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        user:
+          type: object
+          properties:
+            account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+    bodyrequest_OrdersActionsLimitTV:
+      type: object
+      properties:
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        type:
+          type: string
+          example: limit
+          description: Тип заявки
+        quantity:
+          type: integer
+          example: 2
+          description: Количество (лоты)
+        price:
+          type: number
+          example: 190.97
+          description: Цена
+        instrument:
+          type: object
+          properties:
+            symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        user:
+          type: object
+          properties:
+            account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+    bodyrequest_OrdersActionsMarketTV:
+      type: object
+      properties:
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        type:
+          type: string
+          example: market
+          description: Тип заявки
+        quantity:
+          type: integer
+          example: 2
+          description: Количество (лоты)
+        instrument:
+          type: object
+          properties:
+            symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        user:
+          type: object
+          properties:
+            account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+    bodyrequest_OrdersActionsStopTV:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: SBER
+          description: Тикер (Код финансового инструмента)
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        type:
+          type: string
+          example: takeprofit
+          description: Тип заявки
+        takeProfit:
+          type: number
+          example: 190.98
+          description: Стоп-цена
+        triggerPrice:
+          type: number
+          example: 190.98
+          description: Стоп-цена
+        quantity:
+          type: integer
+          example: 2
+          description: Количество
+        instrument:
+          type: object
+          properties:
+            symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        user:
+          type: object
+          properties:
+            account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+        endTime:
+          type: string
+          example: '2020-05-21T20:59:00.000Z'
+          description: Срок действия
+        stopEndUnixTime:
+          type: integer
+          example: 1590094740
+          description: Срок действия (UTC) в формате Unix Time seconds
+    bodyrequest_OrdersActionsStopLimitTV:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: SBER
+          description: Тикер (Код финансового инструмента)
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        price:
+          type: number
+          example: 190.97
+          description: Цена
+        type:
+          type: string
+          example: takeprofit
+          description: Тип заявки
+        takeProfit:
+          type: number
+          example: 190.98
+          description: Стоп-цена
+        triggerPrice:
+          type: number
+          example: 190.98
+          description: Стоп-цена
+        quantity:
+          type: integer
+          example: 2
+          description: Количество
+        instrument:
+          type: object
+          properties:
+            symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        user:
+          type: object
+          properties:
+            account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+        endTime:
+          type: string
+          example: '2020-05-21T20:59:00.000Z'
+          description: Срок действия
+        stopEndUnixTime:
+          type: integer
+          example: 1590094740
+          description: Срок действия (UTC) в формате Unix Time seconds
+    orders_actions_LimitMarket:
+      type: object
+      properties:
+        message:
+          type: string
+          example: (162) Заявка на покупку N 9763124 зарегистрирована (1 удовлетворено).
+          description: Вид ответа на успешно выполненный запрос.
+        orderNumber:
+          type: integer
+          example: 9763124
+          description: Идентификатор заявки
+    orders_actions_400:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Заявка не может быть принята из-за возможного недопустимого снижения уровня маржи.
+          description: Вид ответа для случая отвергнутой заявки.
+    orders_actions_StopProfitLoss:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Succeeded, OrderNo=326123, EndTime={08.08.18  23:59:59}, OrderEndTime=(None)'
+          description: Вид ответа на успешно выполненный запрос.
+        orderNumber:
+          type: integer
+          example: 326123
+          description: Идентификатор заявки
+    orders_actions_DeleteOrderId:
+      type: string
+      example: Succeeded
+      description: Вид ответа на успешно выполненный запрос.
+    bodyrequest_OrdersActionsLimit:
+      type: object
+      properties:
+        Quantity:
+          type: integer
+          example: 1
+          description: Количество
+        Side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        Price:
+          type: number
+          example: 195.11
+          description: Цена
+        Instrument:
+          type: object
+          properties:
+            Symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            Exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        User:
+          type: object
+          properties:
+            Account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            Portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+        OrderEndUnixTime:
+          type: integer
+          example: 0
+          description: Время (UTC) завершения сделки в формате Unix Time seconds
+    bodyrequest_OrdersActionsMarket:
+      type: object
+      properties:
+        Quantity:
+          type: integer
+          example: 1
+          description: Количество
+        Side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        Instrument:
+          type: object
+          properties:
+            Symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            Exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        User:
+          type: object
+          properties:
+            Account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            Portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+        OrderEndUnixTime:
+          type: integer
+          example: 0
+          description: Время (UTC) завершения сделки в формате Unix Time seconds
+    bodyrequest_OrdersActionsStop:
+      type: object
+      properties:
+        Quantity:
+          type: integer
+          example: 1
+          description: Количество
+        Side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        TriggerPrice:
+          type: integer
+          example: 215
+          description: Стоп-цена
+        Instrument:
+          type: object
+          description: Информация об инструмента и бирже
+          properties:
+            Symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            Exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        User:
+          type: object
+          description: Информация о пользователе
+          properties:
+            Account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            Portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+        OrderEndUnixTime:
+          type: integer
+          example: 0
+          description: Время (UTC) завершения сделки в формате Unix Time Seconds
+    bodyrequest_OrdersActionsStoplimit:
+      type: object
+      properties:
+        Quantity:
+          type: integer
+          example: 1
+          description: Количество
+        Side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        TriggerPrice:
+          type: integer
+          example: 205
+          description: Стоп-цена
+        Price:
+          type: integer
+          example: 210
+          description: Цена
+        Instrument:
+          type: object
+          properties:
+            Symbol:
+              type: string
+              example: SBER
+              description: Тикер (Код финансового инструмента)
+            Exchange:
+              type: string
+              example: MOEX
+              description: Биржа
+        User:
+          type: object
+          properties:
+            Account:
+              type: string
+              example: L01-00000F00
+              description: Идентификатор аккаунта пользователя
+            Portfolio:
+              type: string
+              example: D39004
+              description: Идентификатор клиентского портфеля
+        OrderEndUnixTime:
+          type: integer
+          example: 0
+          description: Время (UTC) завершения сделки в формате Unix Time seconds
+    symbols:
+      type: array
+      items:
+        $ref: '#/components/schemas/symbol'
+    orders:
+      type: array
+      items:
+        $ref: '#/components/schemas/order'
+    stoporders:
+      type: array
+      items:
+        $ref: '#/components/schemas/stoporder'
+    history:
+      type: object
+      properties:
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/history_object'
+        next:
+          type: integer
+          example: 1532944860
+          nullable: true
+          description: Время (UTC) начала следующей свечи
+        prev:
+          type: integer
+          example: 1532944860
+          nullable: true
+          description: Время (UTC) начала предыдущей свечи
+    positions:
+      type: array
+      items:
+        $ref: '#/components/schemas/position'
+    trades:
+      type: array
+      items:
+        $ref: '#/components/schemas/trade'
+    orderbook:
+      type: object
+      description: Данные о запрашиваемом "биржевом стакане"
+      properties:
+        snapshot:
+          type: boolean
+          example: true
+          description: 'Deprecated. Устаревшее поле, будет удалено в будущих обновлениях.'
+          deprecated: true
+        bids:
+          type: array
+          items:
+            $ref: '#/components/schemas/orderbook_bid'
+          description: Биды
+        asks:
+          type: array
+          items:
+            $ref: '#/components/schemas/orderbook_ask'
+          description: Аски
+        timestamp:
+          type: number
+          example: 1610982677
+          description: 'Deprecated. Устаревшее поле, будет удалено в будущих обновлениях. Вместо этого поля используйте поле "ms_timestamp".'
+          deprecated: true
+        ms_timestamp:
+          type: number
+          example: 1610982677578
+          description: Время(UTC) в формате Unix Time Milliseconds
+        existing:
+          type: boolean
+          example: false
+          description: 'True - для данных из "снепшота", то есть из истории. False - для новых событий'
+    orderbook_bid:
+      type: object
+      properties:
+        price:
+          type: number
+          example: 115820
+          description: Цена
+        volume:
+          type: integer
+          example: 23
+          description: Объём
+    orderbook_ask:
+      type: object
+      properties:
+        price:
+          type: number
+          example: 116030
+          description: Цена
+        volume:
+          type: integer
+          example: 31
+          description: Объём
+    alltrades:
+      type: array
+      items:
+        $ref: '#/components/schemas/alltrade'
+    securities:
+      type: array
+      items:
+        $ref: '#/components/schemas/security'
+    symbol:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: KMEZ
+          description: Тикер (Код финансового инструмента)
+        exchange:
+          type: string
+          example: MOEX
+          description: Биржа
+        description:
+          type: string
+          example: КМЗ
+          description: Короткое описание на русском языке
+        ask:
+          type: number
+          example: 171.87
+          description: Аск
+        bid:
+          type: number
+          example: 171.82
+          description: Бид
+        prev_close_price:
+          type: number
+          example: 174.9
+          description: Цена предыдущего закрытия
+        last_price:
+          type: number
+          example: 171.82
+          description: Последняя цена
+        last_price_timestamp:
+          type: number
+          example: 1610982677
+          description: UTC-timestamp для значения поля "last_price"
+        change:
+          type: number
+          example: -3.08
+          description: Разность цены и цены предыдущего закрытия
+        change_percent:
+          type: number
+          example: -1.76
+          description: Относительное изменение цены
+        high_price:
+          type: number
+          example: 176.02
+          description: Максимальная цена
+        low_price:
+          type: number
+          example: 170.33
+          description: Минимальная цена
+        accruedInt:
+          type: integer
+          example: 0
+          description: Начислено
+        accrued_interest:
+          type: integer
+          example: 0
+          description: Начислено
+        volume:
+          type: number
+          example: 38767080
+          description: Объём
+        open_interest:
+          type: number
+          example: null
+          nullable: true
+          description: ''
+        open_price:
+          type: number
+          example: 175.07
+          description: Цена открытия
+        yield:
+          type: integer
+          example: null
+          description: ''
+        lotsize:
+          type: number
+          example: 10
+          description: Размер лота
+        lotvalue:
+          type: number
+          example: 1990.2
+          description: ''
+        facevalue:
+          type: number
+          example: 5
+          description: ''
+        type:
+          type: string
+          example: CS
+          description: ''
+    symbol_futures:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: SBRF-9.20
+          description: Тикер (Код финансового инструмента)
+        exchange:
+          type: string
+          example: MOEX
+          description: Биржа
+        description:
+          type: string
+          example: SRU0
+          description: Короткое описание на русском языке
+        ask:
+          type: number
+          example: 171.87
+          description: Аск
+        bid:
+          type: number
+          example: 171.82
+          description: Бид
+        prev_close_price:
+          type: number
+          example: 174.9
+          description: Цена предыдущего закрытия
+        last_price:
+          type: number
+          example: 171.82
+          description: Последняя цена
+        last_price_timestamp:
+          type: integer
+          example: 91022000
+          description: Время последней цены (UTC)
+        change:
+          type: number
+          example: -3.08
+          nullable: true
+          description: Разность цены и цены предыдущего закрытия
+        change_percent:
+          type: number
+          example: -1.76
+          nullable: true
+          description: Относительное изменение цены
+        high_price:
+          type: number
+          example: 176.02
+          description: Максимальная цена
+        low_price:
+          type: number
+          example: 170.33
+          description: Минимальная цена
+        accruedInt:
+          type: integer
+          example: 0
+          nullable: true
+          description: Начислено
+        accrued_interest:
+          type: integer
+          example: 0
+          nullable: true
+          description: Начислено
+        volume:
+          type: number
+          example: 38767080
+          description: Объём
+        open_price:
+          type: number
+          example: 175.07
+          description: Цена открытия
+        yield:
+          type: integer
+          example: null
+          description: ''
+        lotsize:
+          type: number
+          example: 10
+          description: Размер лота
+        lotvalue:
+          type: number
+          example: 1990.2
+          description: ''
+        facevalue:
+          type: number
+          example: 5
+          description: ''
+        type:
+          type: string
+          example: Фьючерсный контракт SBRF-9.20
+          description: ''
+    money:
+      type: object
+      properties:
+        cash:
+          type: number
+          example: 25614.89
+          description: Количество средств
+        used:
+          type: number
+          example: 45536.11
+          description: Количество использованных
+        open:
+          type: number
+          example: 45536.11
+          description: Средства на момент открытия
+        profit:
+          type: number
+          example: -354.7
+          description: Прибыль
+        profitRate:
+          type: number
+          example: -354.7
+          description: Прибыль в процентах
+        comission:
+          type: number
+          example: 2
+          description: Комиссия
+        changes:
+          type: number
+          example: 525.21
+          description: Изменения
+        portfolio:
+          type: number
+          example: 525.56
+          description: Идентификатор клиентского портфеля
+        free:
+          type: number
+          example: 525.25
+          description: Свободные средства
+    order:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '18995978560'
+          description: Уникальный идентификатор заявки
+        symbol:
+          type: string
+          example: SBER
+          description: Тикер (Код финансового инструмента)
+        brokerSymbol:
+          type: string
+          example: 'MOEX:SBER'
+          description: Пара биржа-Тикер
+        exchange:
+          type: string
+          example: MOEX
+          description: Биржа
+        type:
+          type: string
+          example: market
+          description: Тип заявки. Лимитная либо рыночная.
+          enum:
+            - limit
+            - market
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        status:
+          type: string
+          example: filled
+          description: 'Статус исполнения. На исполнении, исполнена, отменена, отклонена.'
+          enum:
+            - working
+            - filled
+            - canceled
+            - rejected
+        transTime:
+          type: string
+          example: '2020-06-16T23:59:59.9990000'
+          description: Время выставления (UTC)
+        endTime:
+          type: string
+          example: '2020-06-16T23:59:59.9990000'
+          description: Время завершения (UTC)
+        qtyUnits:
+          type: number
+          example: 1
+          description: Количество (штуки)
+        qtyBatch:
+          type: number
+          example: 1
+          description: Количество (лоты)
+        qty:
+          type: number
+          example: 1
+          description: Количество (лоты)
+        filledQtyUnits:
+          type: number
+          example: 1
+          description: Количество исполненных (штуки)
+        filledQtyBatch:
+          type: number
+          example: 1
+          description: Количество исполненных (лоты)
+        filled:
+          type: number
+          example: 1
+          description: Количество исполненных (лоты)
+        price:
+          type: number
+          example: 208.6
+          description: Цена
+        existing:
+          type: boolean
+          example: true
+          description: 'True - для данных из "снепшота", то есть из истории. False - для новых событий'
+    stoporder:
+      type: object
+      properties:
+        id:
+          type: number
+          example: 347499
+          description: Уникальный идентификатор стоп-заявки
+        symbol:
+          type: string
+          example: SBER
+          description: Тикер (Код финансового инструмента)
+        exchange:
+          type: string
+          example: MOEX
+          description: Биржа
+        brokerSymbol:
+          type: string
+          example: 'MOEX:LKOH'
+          description: 'Пара Биржа:Тикер'
+        type:
+          type: string
+          example: stop
+          description: Тип заявки
+          enum:
+            - stop
+            - stoplimit
+        stopPrice:
+          type: number
+          example: 215
+          description: Условная цена
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        status:
+          type: string
+          example: filled
+          description: 'Статус исполнения. На исполнении, исполнена, отменена, отклонена.'
+          enum:
+            - working
+            - filled
+            - canceled
+            - rejected
+        endTime:
+          type: string
+          example: '2020-06-16T23:59:59.9990000'
+          description: Время действия заявки (UTC)
+        qty:
+          type: number
+          example: 1
+          description: Количество
+        filledQtyBatch:
+          type: number
+          example: 1
+          description: Количество исполненных
+        price:
+          type: number
+          example: 208.6
+          description: Цена(Лимит)
+        existing:
+          type: boolean
+          example: true
+          description: 'True - для данных из "снепшота", то есть из истории. False - для новых событий'
+    history_object:
+      type: object
+      properties:
+        time:
+          type: integer
+          example: 1532944740
+          description: Время (UTC) (Unix time seconds)
+        close:
+          type: number
+          example: 210.83
+          description: Цена при закрытии
+        open:
+          type: number
+          example: 210.82
+          description: Цена при открытии
+        high:
+          type: number
+          example: 210.83
+          description: Максимальная цена
+        low:
+          type: number
+          example: 210.68
+          description: Миниимальная цена
+        volume:
+          type: integer
+          example: 1944
+          description: Объём
+    summary:
+      type: object
+      properties:
+        buyingPowerAtMorning:
+          type: number
+          example: 439844.15
+          description: Покупательская способность на утро
+        buyingPower:
+          type: number
+          example: 452404
+          description: Покупательская способность
+        profit:
+          type: number
+          example: 12560
+          description: Прибыль за сегодня
+        profitRate:
+          type: number
+          example: 1.93
+          description: 'Норма прибыли, %'
+        portfolioEvaluation:
+          type: number
+          example: 651717
+          description: Ликвидный портфель
+        portfolioLiquidationValue:
+          type: number
+          example: 651717
+          description: Оценка портфеля
+        initialMargin:
+          type: number
+          example: 199313
+          description: Маржа
+        riskBeforeForcePositionClosing:
+          type: number
+          example: 552061
+          description: Риск до закрытия
+    position:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: LKOH
+          description: Тикер (Код финансового инструмента)
+        brokerSymbol:
+          type: string
+          example: 'MOEX:LKOH'
+          description: 'Пара Биржа:Тикер'
+        exchange:
+          type: string
+          example: MOEX
+          description: Биржа
+        avgPrice:
+          type: number
+          example: 16.6
+          description: Средняя цена
+        qtyUnits:
+          type: number
+          example: 20
+          description: Количество (штуки)
+        openUnits:
+          type: number
+          example: 30
+          description: Количество открытых позиций (штуки)
+        lotSize:
+          type: number
+          example: 1
+          description: Размер лота
+        shortName:
+          type: string
+          example: ЛУКОЙЛ
+          description: Короткое наименование
+        qtyT0:
+          type: number
+          example: 20
+          description: ''
+        qtyT1:
+          type: number
+          example: 20
+          description: ''
+        qtyT2:
+          type: number
+          example: 20
+          description: ''
+        qtyTFuture:
+          type: number
+          example: 20
+          description: Количество (штуки)
+        qtyT0Batch:
+          type: number
+          example: 20
+          description: ''
+        qtyT1Batch:
+          type: number
+          example: 20
+          description: ''
+        qtyT2Batch:
+          type: number
+          example: 20
+          description: ''
+        qtyTFutureBatch:
+          type: number
+          example: 20
+          description: Количество (лоты)
+        qtyBatch:
+          type: number
+          example: 20
+          description: Количество (лоты)
+        openQtyBatch:
+          type: number
+          example: 20
+          description: ''
+        qty:
+          type: number
+          example: 20
+          description: Количество (лоты)
+        open:
+          type: number
+          example: 20
+          description: ''
+        unrealisedPl:
+          type: number
+          example: 3250
+          description: ''
+        isCurrency:
+          type: boolean
+          example: false
+          description: 'True для валютных остатков (денег), false - для торговых инструментов'
+    fortsrisk:
+      type: object
+      properties:
+        portfolio:
+          type: string
+          example: D49004
+          description: Идентификатор клиентского портфеля
+        moneyFree:
+          type: number
+          example: 452404
+          description: 'Свободные средства. Сумма рублей и залогов, дисконтированных в рубли, доступная для открытия позиций. (MoneyFree = MoneyAmount + VmInterCl – MoneyBlocked – VmReserve – Fee)'
+        moneyBlocked:
+          type: number
+          example: 12560
+          description: 'Средства, заблокированные под ГО'
+        balanceMoney:
+          type: number
+          example: 1.93
+          description: Сальдо денежных торговых переводов за текущую сессию
+        fee:
+          type: number
+          example: 651717
+          description: Списанный сбор
+        moneyOld:
+          type: number
+          example: 651717
+          description: Общее количество рублей и дисконтированных в рубли залогов на начало сессии
+        moneyAmount:
+          type: number
+          example: 199313
+          description: Общее количество рублей и дисконтированных в рубли залогов
+        moneyPledgeAmount:
+          type: number
+          example: 552061
+          description: 'Сумма залогов, дисконтированных в рубли'
+        vmInterCl:
+          type: number
+          example: 651717
+          description: 'Вариационная маржа, списанная или полученная в пром. клиринг'
+        vmCurrentPositions:
+          type: number
+          example: 199313
+          description: Сагрегированная вармаржа по текущим позициям
+        varMargin:
+          type: number
+          example: 552061
+          description: VmCurrentPositions + VmInterCl
+        isLimitsSet:
+          type: boolean
+          example: false
+          description: Наличие установленных денежного и залогового лимитов
+    risk:
+      type: object
+      properties:
+        portfolio:
+          type: string
+          example: D49004
+          description: Идентификатор клиентского портфеля
+        exchange:
+          type: string
+          example: MOEX
+          description: Биржа
+        portfolioEvaluation:
+          type: number
+          example: 646270.9
+          description: Общая стоимость портфеля
+        portfolioLiquidationValue:
+          type: number
+          example: 646270.9
+          description: Стоимость ликвидного портфеля
+        initialMargin:
+          type: number
+          example: 15752.115
+          description: Начальная маржа
+        minimalMargin:
+          type: number
+          example: 65177.0575
+          description: Минимальная маржа
+        correctedMargin:
+          type: number
+          example: 15752.115
+          description: Скорректированная маржа
+        riskCoverageRatioOne:
+          type: number
+          example: 630518.785
+          description: НПР1
+        riskCoverageRatioTwo:
+          type: number
+          example: 638394.8425
+          description: НПР2
+        riskCategoryId:
+          type: integer
+          example: 2
+          description: Категория риска
+        clientType:
+          type: string
+          example: HighRisk
+          description: Тип клиента
+        hasForbiddenPositions:
+          type: boolean
+          example: false
+          description: Имеются ли запретные позиции
+        hasNegativeQuantity:
+          type: boolean
+          example: false
+          description: Имеются ли отрицательные количества
+    alltrade:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 159
+          description: Уникальный идентификатор.
+        orderno:
+          type: integer
+          example: 0
+          description: Идентификатор заявки
+        symbol:
+          type: string
+          example: SBER
+          description: 'Тикер (Код финансового инструмента). "[N/A]" используется если symbol не определен.'
+        qty:
+          type: integer
+          example: 1
+          description: Количество
+        price:
+          type: number
+          example: 142.52
+          description: Цена
+        time:
+          type: string
+          example: '2018-08-07T08:40:03.445Z'
+          description: Дата и время (UTC) закрытия заявки
+        timestamp:
+          type: integer
+          example: 1611158710768
+          description: Время (UTC) в формате Unix Time Milliseconds
+        side:
+          type: string
+          example: buy
+          description: Направление агрессивной заявки. Поле может быть пустым
+          enum:
+            - buy
+            - sell
+        oi:
+          type: integer
+          example: 523920
+          description: Открытый интерес (open interest). Если не поддерживается инстурментом - значение 0.
+        existing:
+          type: boolean
+          example: false
+          description: 'True - для данных из "снепшота", то есть из истории. False - для новых событий'
+    security:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: SBER
+          description: Тикер (Код финансового инструмента)
+        shortname:
+          type: string
+          example: Сбербанк
+          description: Краткое наименование инструмента
+        description:
+          type: string
+          example: Сбербанк России ПАО ао
+          description: Краткое описание инструмента
+        exchange:
+          type: string
+          example: MOEX
+          description: Биржа
+        type:
+          type: string
+          example: CS
+          description: Тип
+        lotsize:
+          type: number
+          example: 1
+          description: Размер лота
+        facevalue:
+          type: number
+          example: 100
+          description: Номинальная стоимость
+        cfiCode:
+          type: string
+          example: ESXXXX
+          description: Тип ценной бумаги согласно стандарту ISO 10962
+        cancellation:
+          type: string
+          example: '2018-09-03T00:00:00'
+          description: Дата и время (UTC) окончания действия
+        minstep:
+          type: number
+          example: 0.01
+          description: Минимальный шаг цены
+        rating:
+          type: number
+          example: 195613886
+          description: ''
+        marginbuy:
+          type: number
+          example: 6707.86
+          description: Цена маржинальной покупки (заемные средства)
+        marginsell:
+          type: number
+          example: 6707.86
+          description: Цена маржинальной продажи (заемные средства)
+        marginrate:
+          type: number
+          example: 89.3428
+          description: Отношение цены маржинальной покупки к цене последней сделки
+        pricestep:
+          type: number
+          example: 6.30202
+          description: 'Минимальный шаг цены, выраженный в рублях'
+        priceMax:
+          type: number
+          example: 79.57
+          description: Максимальная цена
+        priceMin:
+          type: number
+          example: 70.55
+          description: Минимальная цена
+        theorPrice:
+          type: number
+          example: 0
+          description: ''
+        theorPriceLimit:
+          type: number
+          example: 0
+          description: ''
+        volatility:
+          type: number
+          example: 0
+          description: Волативность
+        currency:
+          type: string
+          example: RUB
+          description: Валюта
+        ISIN:
+          type: string
+          nullable: true
+          example: RU000A1014L8
+          description: Идентификатор ценной бумаги согласно стандарту ISO 6166
+        yield:
+          type: string
+          nullable: true
+          example: null
+          description: ''
+        primary_board:
+          type: string
+          example: ROPD
+          description: Код режима торгов
+    time:
+      type: integer
+      example: 1532944071
+      description: Текущее время (UTC) в формате Unix time seconds
+    trade:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 159
+          description: Уникальный идентификатор сделки
+        orderno:
+          type: string
+          example: 7271479
+          description: Идентификатор заявки
+        symbol:
+          type: string
+          example: GAZP
+          description: 'Тикер (Код финансового инструмента). "[N/A]" используется если symbol не определен.'
+        brokerSymbol:
+          type: string
+          example: 'GAZP:MOEX'
+          description: 'Пара Биржа:Тикер'
+        exchange:
+          type: string
+          example: MOEX
+          description: Биржа
+        date:
+          type: string
+          example: '2018-08-07T08:40:03.445Z'
+          description: Дата и время (UTC) закрытия заявки
+        board:
+          type: string
+          example: TQBR
+          description: Код режима торгов
+        qtyUnits:
+          type: integer
+          example: 1
+          description: Количество (штуки)
+        qtyBatch:
+          type: integer
+          example: 1
+          description: Количество (лоты)
+        qty:
+          type: integer
+          example: 1
+          description: Количество (лоты)
+        price:
+          type: number
+          example: 142.52
+          description: Цена
+        side:
+          type: string
+          example: buy
+          description: Направление сделки. Купля либо продажа.
+          enum:
+            - buy
+            - sell
+        existing:
+          type: boolean
+          example: false
+          description: 'True - для данных из "снепшота", то есть из истории. False - для новых событий'
+    servers_info:
+      type: array
+      items:
+        $ref: '#/components/schemas/portfolio_info'
+    portfolio_info:
+      type: array
+      items:
+        type: object
+        properties:
+          portfolio:
+            type: string
+            example: D39004
+            description: Идентификатор клиентского портфеля
+          tks:
+            type: string
+            example: L01-00000F00
+          tradeServersInfo:
+            type: array
+            items:
+              type: object
+              properties:
+                tradeServerCode:
+                  type: string
+                  example: TRADE
+                  description: Код сервера
+                addresses:
+                  type: string
+                  nullable: true
+                  example: null
+                type:
+                  type: string
+                  nullable: true
+                  example: null
+                contracts:
+                  type: string
+                  example: РЦБ
+                market:
+                  type: string
+                  nullable: true
+                  example: null
+                accountNum:
+                  type: string
+                  nullable: true
+                  example: null
