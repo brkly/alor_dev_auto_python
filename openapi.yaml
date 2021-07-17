@@ -113,13 +113,15 @@ info:
   contact:
     email: openapi@alor.ru
 servers:
+  - url: https://apidev.alor.ru
+    description: Dev server
   - url: https://api.alor.ru
     description: Production server
 paths:
   '/client/v1.0/users/{username}/portfolios':
     get:
       summary: Получение списка серверов портфелей
-      description: Получение списка серверов по секциям «Валютный Рынок», «Срочный Рынок», «Фондовый Рынок». В ответе в поле tradeServerCode содержится значение которое надо использовать
+      description: Получение списка серверов по секциям «Валютный рынок», «Срочный рынок», «Фондовый рынок». В ответе в поле tradeServerCode содержится значение которое надо использовать
       operationId: DevUserPortfolio
       parameters:
         - name: username
@@ -2015,17 +2017,6 @@ components:
             body:
               type: string
               example: 'Provided json can''t be properly deserialised, perhaps you made an error or forgot some field'
-    orders_actions_StopProfitLoss_CommandAPI:
-      type: object
-      properties:
-        message:
-          type: string
-          example: 'Succeeded, OrderNo=326123, EndTime={08.08.18  23:59:59}'
-          description: Вид ответа на успешно выполненный запрос.
-        orderNumber:
-          type: integer
-          example: 326123
-          description: Идентификатор заявки
     orders_actions_DeleteOrderId_CommandAPI:
       type: string
       example: success
@@ -2206,130 +2197,6 @@ components:
               type: string
               example: D39004
               description: Идентификатор клиентского портфеля
-    bodyrequest_OrdersActionsStopTV:
-      type: object
-      properties:
-        symbol:
-          type: string
-          example: SBER
-          description: Тикер (Код финансового инструмента)
-        side:
-          type: string
-          example: buy
-          description: Направление сделки. Купля либо продажа.
-          enum:
-            - buy
-            - sell
-        type:
-          type: string
-          example: takeprofit
-          description: Тип заявки
-        takeProfit:
-          type: number
-          example: 190.98
-          description: Стоп-цена
-        triggerPrice:
-          type: number
-          example: 190.98
-          description: Стоп-цена
-        quantity:
-          type: integer
-          example: 2
-          description: Количество
-        instrument:
-          type: object
-          properties:
-            symbol:
-              type: string
-              example: SBER
-              description: Тикер (Код финансового инструмента)
-            exchange:
-              type: string
-              example: MOEX
-              description: Биржа
-        user:
-          type: object
-          properties:
-            account:
-              type: string
-              example: L01-00000F00
-              description: Идентификатор аккаунта пользователя
-            portfolio:
-              type: string
-              example: D39004
-              description: Идентификатор клиентского портфеля
-        endTime:
-          type: string
-          example: '2020-05-21T20:59:00.000Z'
-          description: Срок действия
-        stopEndUnixTime:
-          type: integer
-          example: 1590094740
-          description: Срок действия (UTC) в формате Unix Time seconds
-    bodyrequest_OrdersActionsStopLimitTV:
-      type: object
-      properties:
-        symbol:
-          type: string
-          example: SBER
-          description: Тикер (Код финансового инструмента)
-        side:
-          type: string
-          example: buy
-          description: Направление сделки. Купля либо продажа.
-          enum:
-            - buy
-            - sell
-        price:
-          type: number
-          example: 190.97
-          description: Цена
-        type:
-          type: string
-          example: takeprofit
-          description: Тип заявки
-        takeProfit:
-          type: number
-          example: 190.98
-          description: Стоп-цена
-        triggerPrice:
-          type: number
-          example: 190.98
-          description: Стоп-цена
-        quantity:
-          type: integer
-          example: 2
-          description: Количество
-        instrument:
-          type: object
-          properties:
-            symbol:
-              type: string
-              example: SBER
-              description: Тикер (Код финансового инструмента)
-            exchange:
-              type: string
-              example: MOEX
-              description: Биржа
-        user:
-          type: object
-          properties:
-            account:
-              type: string
-              example: L01-00000F00
-              description: Идентификатор аккаунта пользователя
-            portfolio:
-              type: string
-              example: D39004
-              description: Идентификатор клиентского портфеля
-        endTime:
-          type: string
-          example: '2020-05-21T20:59:00.000Z'
-          description: Срок действия
-        stopEndUnixTime:
-          type: integer
-          example: 1590094740
-          description: Срок действия (UTC) в формате Unix Time seconds
     orders_actions_LimitMarket:
       type: object
       properties:
@@ -2363,90 +2230,6 @@ components:
       type: string
       example: Succeeded
       description: Вид ответа на успешно выполненный запрос.
-    bodyrequest_OrdersActionsLimit:
-      type: object
-      properties:
-        Quantity:
-          type: integer
-          example: 1
-          description: Количество
-        Side:
-          type: string
-          example: buy
-          description: Направление сделки. Купля либо продажа.
-          enum:
-            - buy
-            - sell
-        Price:
-          type: number
-          example: 195.11
-          description: Цена
-        Instrument:
-          type: object
-          properties:
-            Symbol:
-              type: string
-              example: SBER
-              description: Тикер (Код финансового инструмента)
-            Exchange:
-              type: string
-              example: MOEX
-              description: Биржа
-        User:
-          type: object
-          properties:
-            Account:
-              type: string
-              example: L01-00000F00
-              description: Идентификатор аккаунта пользователя
-            Portfolio:
-              type: string
-              example: D39004
-              description: Идентификатор клиентского портфеля
-        OrderEndUnixTime:
-          type: integer
-          example: 0
-          description: Время (UTC) завершения сделки в формате Unix Time seconds
-    bodyrequest_OrdersActionsMarket:
-      type: object
-      properties:
-        Quantity:
-          type: integer
-          example: 1
-          description: Количество
-        Side:
-          type: string
-          example: buy
-          description: Направление сделки. Купля либо продажа.
-          enum:
-            - buy
-            - sell
-        Instrument:
-          type: object
-          properties:
-            Symbol:
-              type: string
-              example: SBER
-              description: Тикер (Код финансового инструмента)
-            Exchange:
-              type: string
-              example: MOEX
-              description: Биржа
-        User:
-          type: object
-          properties:
-            Account:
-              type: string
-              example: L01-00000F00
-              description: Идентификатор аккаунта пользователя
-            Portfolio:
-              type: string
-              example: D39004
-              description: Идентификатор клиентского портфеля
-        OrderEndUnixTime:
-          type: integer
-          example: 0
-          description: Время (UTC) завершения сделки в формате Unix Time seconds
     bodyrequest_OrdersActionsStop:
       type: object
       properties:
