@@ -33,8 +33,15 @@ class Api:
         self.refresh_token = refresh
         self.token_ttl = TTL_JWT_TOKEN
         self.jwt_token = self._get_jwt_token()
-        self.client = swagger_client.api.default_api.DefaultApi(
-            swagger_client.ApiClient(header_name='Authorization', header_value=self._bearer()))
+        self.bearer = self._bearer()
+        self.client = self.get_client()
+
+    def get_client(self):
+        self._bearer()
+        client = swagger_client.api.default_api.DefaultApi(
+            swagger_client.ApiClient(header_name='Authorization', header_value=self.bearer))
+        self.client = client
+        return client
 
     def _get_jwt_token(self):
         payload = {'token': self.refresh_token}
@@ -67,4 +74,5 @@ class Api:
         if not bearer:
             logging.error('Не найден JWT токен, запустите get_jwt()!')
             return None
+        self.bearer = bearer
         return bearer
