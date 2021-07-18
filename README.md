@@ -1,6 +1,8 @@
 # alor_dev_auto_python
 Generate python client for Alor Broker OpenAPI (alor.dev) from swagger
 
+Файл alor_swagger.py основан на файле client.py из https://github.com/mechnotech/alor-api (Большое спасибо Евгению Шумилову, telegram: @mechnotech)
+
 ## Editor
 1. Go to https://editor.swagger.io/
 2. File -> Clear Editor
